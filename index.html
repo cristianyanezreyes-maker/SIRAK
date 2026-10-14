@@ -26,6 +26,7 @@ table{border-collapse:collapse;width:100%;font-size:14px}th,td{border-bottom:1px
 #warn{position:fixed;inset:0;background:rgba(160,20,20,.93);color:#fff;display:none;align-items:center;justify-content:center;text-align:center;z-index:99;padding:30px;font-size:20px}
 .msg{color:#c0392b;min-height:20px}
 </style></head><body>
+<div id="ld" style="display:none;position:fixed;top:0;right:0;background:#1f5192;color:#fff;padding:5px 14px;border-radius:0 0 0 8px;z-index:98;font-size:13px">Cargando…</div>
 <div id="warn"><div><h2 style="color:#fff">⚠ Salida de la evaluación detectada</h2><p>Se registró que abandonó la ventana/pantalla completa. Cada evento queda en el informe de la administración.</p><button class="b g" onclick="warn.style.display='none';goFull()">Volver a la evaluación</button></div></div>
 <div id="app"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
@@ -36,8 +37,12 @@ const API_URL='https://script.google.com/macros/s/AKfycbz04KxJ4h854OLedZjhR9Cjkh
 /* ================================================================================== */
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let S={token:sessionStorage.getItem('tk'),user:null,tab:''},EX=null;
-const fd=t=>t?new Date(Number(t)).toLocaleString('es-CL'):'-',dur=s=>Math.floor(s/60)+'m '+Math.round(s%60)+'s';
-async function api(action,d={}){const r=await fetch(API_URL,{method:'POST',body:JSON.stringify({action,token:S.token,...d})});const j=await r.json();if(!j.ok)throw new Error(j.error);return j.data}
+const fd=t=>t?new Date(Number(t)).toLocaleString('es-CL',{timeZone:'America/Santiago'}):'-',dur=s=>Math.floor(s/60)+'m '+Math.round(s%60)+'s';
+let LD=0;const ld=n=>{LD+=n;const e=$('ld');if(e)e.style.display=LD>0?'block':'none'};
+async function api(action,d={}){ld(1);try{const r=await fetch(API_URL,{method:'POST',body:JSON.stringify({action,token:S.token,...d})});const j=await r.json();if(!j.ok)throw new Error(j.error);return j.data}finally{ld(-1)}}
+const offs=u=>{const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/Santiago',hourCycle:'h23',year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'numeric',second:'numeric'}).formatToParts(new Date(u)).reduce((o,x)=>(o[x.type]=x.value,o),{});return Date.UTC(p.year,p.month-1,p.day,p.hour,p.minute,p.second)-Math.floor(u/1000)*1000};
+const chMs=s=>{const[a,t]=s.split('T'),[y,m,d]=a.split('-').map(Number),[H,M]=t.split(':').map(Number),L=Date.UTC(y,m-1,d,H,M);let u=L;for(let i=0;i<3;i++)u=L-offs(u);return u};
+const fc=v=>/^\d{10,}$/.test(String(v))?fd(v):String(v).replace('T',' ');
 const T=async f=>{try{return await f()}catch(e){alert(e.message)}};
 function shell(tabs,body){$('app').innerHTML=`<header><img src="logo.png"><b>Plataforma de Evaluaciones</b><span class="sp"></span><nav>${tabs.map(t=>`<button class="${S.tab==t[0]?'on':''}" onclick="go('${t[0]}')">${t[1]}</button>`).join('')}</nav><span>${esc(S.user.nombre)}</span><button class="b g s" onclick="logout()">Salir</button></header><main id="m">${body||''}</main>`}
 function logout(){sessionStorage.clear();S.token=null;boot()}
@@ -50,7 +55,7 @@ function forzar(){$('app').innerHTML=`<div id="login" class="card"><img src="log
 function passForm(){return `<input id="pa" type="password" placeholder="Clave actual"><input id="pn" type="password" placeholder="Clave nueva (mín. 8)"><button class="b" onclick="chPass()">Cambiar clave</button>`}
 function chPass(){T(async()=>{await api('cambiarClave',{actual:$('pa').value,nueva:$('pn').value});alert('Clave actualizada');S.user.cambiar=false;boot()})}
 function go(t){S.tab=t;const adm=S.user.rol==='admin';
-  shell(adm?[['res','Resultados'],['ev','Evaluaciones'],['us','Usuarios'],['as','Horarios'],['cu','Mi cuenta']]:[['mis','Mis evaluaciones'],['inf','Mis informes'],['cu','Mi cuenta']]);
+  shell(adm?[['res','Resultados'],['ev','Evaluaciones'],['us','Usuarios'],['as','Habilitar instrumentos'],['cu','Mi cuenta']]:[['mis','Mis evaluaciones'],['inf','Mis informes'],['cu','Mi cuenta']]);
   ({res:vRes,ev:vEv,us:vUs,as:vAs,cu:vCu,mis:vMis,inf:vInf})[t]()}
 async function vCu(){let ia='';if(S.user.rol=='admin'){const s=await api('iaEstado');ia=`<div class="card" style="max-width:520px"><h2>Clave de IA (Groq)</h2><p>Estado: <b>${s.ok?'configurada':'sin configurar'}</b></p><p class="no">⚠ Cambiar solo si es estrictamente necesario. Si la IA funciona, no la toque.</p>${S.user.principal?'<input id="gk" placeholder="gsk_..."><button class="b g" onclick="gkSave()">Actualizar clave</button>':'<small>Solo la administradora principal puede actualizarla.</small>'}</div>`}
 $('m').innerHTML=`<div class="card" style="max-width:420px"><h2>Cambiar mi clave</h2>${passForm()}</div>`+ia}
@@ -70,11 +75,11 @@ const uDe=id=>{if(confirm('¿Eliminar usuario?'))T(async()=>{await api('uElimina
 
 /* ===== ADMIN: HORARIOS ===== */
 async function vAs(){const[ev,us,as]=await Promise.all([api('evals'),api('usuarios'),api('asigs')]);
-  $('m').innerHTML=`<div class="card"><h2>Habilitar evaluación (inicio y término)</h2>Evaluación<select id="ae">${ev.map(e=>`<option value="${e.id}">${esc(e.titulo)}</option>`).join('')}</select>
-<div class="row"><div>Inicio<input type="datetime-local" id="ai"></div><div>Término<input type="datetime-local" id="af"></div></div>
+  $('m').innerHTML=`<div class="card"><h2>Habilitar instrumentos</h2>Instrumento<select id="ae">${ev.map(e=>`<option value="${e.id}">${esc(e.titulo)}</option>`).join('')}</select>
+<div class="row"><div>Inicio (hora de Chile)<input type="datetime-local" id="ai"></div><div>Término (hora de Chile)<input type="datetime-local" id="af"></div></div>
 <label><input type="checkbox" id="at" style="width:auto"> Todos los profesionales</label><div>${us.filter(u=>u.rol=='pro').map(u=>`<label style="display:inline-block;width:240px"><input type="checkbox" class="au" value="${u.id}" style="width:auto"> ${esc(u.nombre)}</label>`).join('')}</div><br><button class="b" onclick="asg()">Habilitar</button></div>
-<div class="card"><h2>Habilitaciones</h2><table><tr><th>Evaluación</th><th>Funcionario</th><th>Inicio</th><th>Término</th><th></th></tr>${as.map(a=>`<tr><td>${esc(a.evaluacion)}</td><td>${esc(a.usuario)}</td><td>${a.inicio.replace('T',' ')}</td><td>${a.fin.replace('T',' ')}</td><td><button class="b s r" onclick="asDe('${a.id}')">Quitar</button></td></tr>`).join('')}</table></div>`}
-const asg=()=>T(async()=>{const ids=$('at').checked?['*']:[...document.querySelectorAll('.au:checked')].map(x=>x.value);if(!ids.length||!$('ai').value||!$('af').value)throw Error('Complete fechas y funcionarios');await api('asignar',{evalId:$('ae').value,userIds:ids,inicio:$('ai').value,fin:$('af').value});vAs()});
+<div class="card"><h2>Instrumentos habilitados</h2><table><tr><th>Evaluación</th><th>Funcionario</th><th>Inicio</th><th>Término</th><th></th></tr>${as.map(a=>`<tr><td>${esc(a.evaluacion)}</td><td>${esc(a.usuario)}</td><td>${fc(a.inicio)}</td><td>${fc(a.fin)}</td><td><button class="b s r" onclick="asDe('${a.id}')">Quitar</button></td></tr>`).join('')}</table></div>`}
+const asg=()=>T(async()=>{const ids=$('at').checked?['*']:[...document.querySelectorAll('.au:checked')].map(x=>x.value);if(!ids.length||!$('ai').value||!$('af').value)throw Error('Complete fechas y funcionarios');const i=chMs($('ai').value),f=chMs($('af').value);if(f<=i)throw Error('El término debe ser posterior al inicio');await api('asignar',{evalId:$('ae').value,userIds:ids,inicio:i,fin:f});vAs()});
 const asDe=id=>T(async()=>{await api('asigEliminar',{id});vAs()});
 
 /* ===== ADMIN: EVALUACIONES (instrumentos, objetivos, habilidades, preguntas) ===== */
@@ -116,10 +121,10 @@ const iaAn=()=>T(async()=>{$('iar').textContent='Analizando con IA…';const r=a
 const iaRev=()=>T(async()=>{$('iar').textContent='Corrigiendo con IA…';const r=await api('iaAnalizar',{id:RP.id,modo:'revisar'});(r.items||[]).forEach(x=>{const a=$('pt'+x.pid),t=$('rt'+x.pid);if(a)a.value=Math.max(0,Math.min(Number(x.pts)||0,Number(a.max)));if(t&&x.comentario)t.value=x.comentario});$('iar').textContent='Sugerencias cargadas: revíselas y pulse "Guardar revisión".'});
 const EVL={tab:'Cambió de pestaña / minimizó',blur:'Perdió el foco de la ventana',copy:'Intentó copiar',cut:'Intentó cortar',paste:'Intentó pegar',menu:'Clic derecho',tecla:'Atajo de teclado bloqueado',full:'Salió de pantalla completa',fuera_de_plazo:'Envío fuera de plazo'};
 function txt(p,v){if(v==='')return '(sin respuesta)';return p.tipo=='ALT'?(p.opciones[Number(v)]??v):v}
-const guardaRev=id=>T(async()=>{const pts={},retros={};RP.preguntas.forEach(p=>{if(p.tipo=='DES')pts[p.pid]=$('pt'+p.pid).value;const t=$('rt'+p.pid);if(t)retros[p.pid]=t.value});await api('revisar',{id,pts,retros,retro:$('rg').value});alert('Revisión guardada');verInf(id,true);if($('rl'))loadRes()});
+const guardaRev=id=>T(async()=>{const pts={},retros={};RP.preguntas.forEach(p=>{if(p.tipo=='DES')pts[p.pid]=$('pt'+p.pid).value;const t=$('rt'+p.pid);if(t&&t.value!==p.retro)retros[p.pid]=t.value});await api('revisar',{id,pts,retros,retro:$('rg').value});alert('Revisión guardada');verInf(id,true);if($('rl'))loadRes()});
 
 /* ===== PROFESIONAL ===== */
-async function vMis(){const l=await api('misEvals');$('m').innerHTML=`<h2>Mis evaluaciones</h2>`+(l.map(e=>`<div class="card"><h3>${esc(e.titulo)}</h3><p><b>Objetivo(s):</b> ${esc(e.objetivos)}</p><p><b>Habilidades:</b> ${e.habilidades.map(h=>`<span class="tag">${esc(h)}</span>`).join('')}</p><p>Disponible: ${e.inicio.replace('T',' ')} a ${e.fin.replace('T',' ')} · Duración ${e.duracion} min · Estado: <b>${e.estado}</b></p>${['Disponible','EnCurso'].includes(e.estado)?`<button class="b v" onclick="start('${e.evalId}')">${e.estado=='EnCurso'?'Continuar':'Comenzar'}</button>`:''}</div>`).join('')||'<div class="card">No tiene evaluaciones habilitadas.</div>')}
+async function vMis(){const l=await api('misEvals');$('m').innerHTML=`<h2>Mis evaluaciones</h2>`+(l.map(e=>`<div class="card"><h3>${esc(e.titulo)}</h3><p><b>Objetivo(s):</b> ${esc(e.objetivos)}</p><p><b>Habilidades:</b> ${e.habilidades.map(h=>`<span class="tag">${esc(h)}</span>`).join('')}</p><p>Disponible: ${fc(e.inicio)} a ${fc(e.fin)} · Duración ${e.duracion} min · Estado: <b>${e.estado}</b></p>${['Disponible','EnCurso'].includes(e.estado)?`<button class="b v" onclick="start('${e.evalId}')">${e.estado=='EnCurso'?'Continuar':'Comenzar'}</button>`:''}</div>`).join('')||'<div class="card">No tiene evaluaciones habilitadas.</div>')}
 async function vInf(){const l=await api('misInformes');$('m').innerHTML=`<h2>Mis informes</h2><div class="card"><table><tr><th>Evaluación</th><th>Fecha</th><th>Nota</th><th>Estado</th><th></th></tr>${l.map(r=>`<tr><td>${esc(r.evaluacion)}</td><td>${fd(r.fin)}</td><td>${r.estado=='Revisado'?r.nota:'-'}</td><td>${r.estado}</td><td>${r.estado=='Revisado'?`<button class="b s" onclick="verInf('${r.id}',false)">Ver informe</button>`:''}</td></tr>`).join('')}</table></div>`}
 
 /* ===== RENDICIÓN (con control de copia y salida) ===== */

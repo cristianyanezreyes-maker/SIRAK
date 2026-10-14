@@ -39,3 +39,9 @@ Ocurre cuando el script no está vinculado a una Hoja de cálculo. El nuevo `Cod
 - **Claves automáticas:** en Usuarios deje la clave vacía (o use "Asignar clave" vacío) y se genera una de 10 caracteres. Se muestra una sola vez y, si marca "Enviar por correo", se envía desde la cuenta de Google que implementó el script. Límite aprox.: 100 correos/día en Gmail personal. El usuario debe cambiarla en su primer ingreso.
 - **Importar Word/PDF:** Evaluaciones → "Importar Word/PDF con IA". Se lee el archivo, la IA arma el borrador (preguntas, tipos, clave propuesta, habilidades) y usted lo revisa y guarda. Funciona con archivos de hasta ~24.000 caracteres; sobre eso, dividirlos. Si prefiere, también puede enviarme el archivo por el chat para que yo lo prepare.
 - **PDF del instrumento:** en Evaluaciones, "PDF con pauta" (clave, habilidad y puntaje por pregunta) y "PDF sin pauta" (hoja para aplicar en papel). Ambos con logo.
+
+## 7. Horarios y velocidad (versión actual)
+- Los horarios se guardan ahora como hora exacta de Chile (zona America/Santiago), sin depender de la hora del navegador ni de la hoja. Las habilitaciones antiguas se siguen leyendo; si alguna falla, quítela y vuelva a habilitarla.
+- La pestaña y el título de "Horarios" pasaron a **Habilitar instrumentos**.
+- Velocidad: lectura en caché, guardado de respuestas en bloque y bloqueo solo en acciones de administración. Aparece "Cargando…" mientras se procesa. Apps Script de por sí tarda 1–3 s por acción.
+- Para actualizar: pegar `Codigo.gs` → Nueva versión de la implementación → subir `index.html` a GitHub (y refrescar con Ctrl+F5).
