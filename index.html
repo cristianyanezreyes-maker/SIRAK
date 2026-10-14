@@ -61,7 +61,7 @@ const offs=u=>{const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/Santia
 const chMs=s=>{const[a,t]=s.split('T'),[y,m,d]=a.split('-').map(Number),[H,M]=t.split(':').map(Number),L=Date.UTC(y,m-1,d,H,M);let u=L;for(let i=0;i<3;i++)u=L-offs(u);return u};
 const fc=v=>/^\d{10,}$/.test(String(v))?fd(v):String(v).replace('T',' ');
 const T=async f=>{try{return await f()}catch(e){alert(e.message)}};
-function shell(tabs,body){$('app').innerHTML=`<header><img src="logo.png"><b>Plataforma de Evaluaciones</b> <small style="color:#8a96a6">v14-oct-d</small><span class="sp"></span><nav>${tabs.map(t=>`<button class="${S.tab==t[0]?'on':''}" onclick="go('${t[0]}')">${t[1]}</button>`).join('')}</nav><span>${esc(S.user.nombre)}</span><button class="b g s" onclick="logout()">Salir</button></header><main id="m">${body||''}</main>`}
+function shell(tabs,body){$('app').innerHTML=`<header><img src="logo.png"><b>Plataforma de Evaluaciones</b> <small style="color:#8a96a6">v14-oct-g</small><span class="sp"></span><nav>${tabs.map(t=>`<button class="${S.tab==t[0]?'on':''}" onclick="go('${t[0]}')">${t[1]}</button>`).join('')}</nav><span>${esc(S.user.nombre)}</span><button class="b g s" onclick="logout()">Salir</button></header><main id="m">${body||''}</main>`}
 function logout(){sessionStorage.clear();S.token=null;boot()}
 async function boot(){
   if(S.token){try{S.user=await api('yo');return S.user.cambiar?forzar():go(S.user.rol==='pro'?'mis':'res')}catch(e){S.token=null}}
@@ -70,12 +70,14 @@ async function doLogin(){try{const r=await api('login',{usuario:$('u').value,cla
 async function recu(){const u=prompt('Ingrese su usuario. La administración recibirá la solicitud y le asignará una clave nueva.');if(u)T(async()=>alert(await api('recuperar',{usuario:u})))}
 function forzar(){$('app').innerHTML=`<div id="login" class="card"><img src="logo.png"><h3>Debe cambiar su clave</h3>${passForm()}</div>`}
 function passForm(){return `<input id="pa" type="password" placeholder="Clave actual"><input id="pn" type="password" placeholder="Clave nueva (mín. 8)"><button class="b" onclick="chPass()">Cambiar clave</button>`}
-function chPass(){T(async()=>{await api('cambiarClave',{actual:$('pa').value,nueva:$('pn').value});alert('Clave actualizada');S.user.cambiar=false;boot()})}
+function chPass(){if(/^\s*gsk_/.test($('pa').value+$('pn').value)){alert('Eso es la clave de la IA, no su contraseña. Péguela en el recuadro "Clave de IA (Groq)" y pulse "Actualizar clave".');return}T(async()=>{await api('cambiarClave',{actual:$('pa').value,nueva:$('pn').value});alert('Clave actualizada');S.user.cambiar=false;boot()})}
 function go(t){S.tab=t;const adm=S.user.rol==='admin',ap=S.user.rol==='apoyo';
   shell(ap?[['res','Resultados'],['ev','Instrumentos'],['cu','Mi cuenta']]:adm?[['res','Resultados'],['ev','Evaluaciones'],['us','Usuarios'],['as','Habilitar instrumentos'],['cu','Mi cuenta']]:[['mis','Mis evaluaciones'],['inf','Mis informes'],['cu','Mi cuenta']]);
   ({res:vRes,ev:vEv,us:vUs,as:vAs,cu:vCu,mis:vMis,inf:vInf})[t]()}
-async function vCu(){let ia='';if(S.user.rol=='admin'){const s=await api('iaEstado');ia=`<div class="card" style="max-width:520px"><h2>Clave de IA (Groq)</h2><p>Estado: <b>${s.ok?'configurada':'sin configurar'}</b></p><p class="no">⚠ Cambiar solo si es estrictamente necesario. Si la IA funciona, no la toque.</p>${S.user.principal?'<input id="gk" placeholder="gsk_..."><button class="b g" onclick="gkSave()">Actualizar clave</button>':'<small>Solo la administradora principal puede actualizarla.</small>'}</div>`}
-$('m').innerHTML=`<div class="card" style="max-width:420px"><h2>Cambiar mi clave</h2>${passForm()}</div>`+ia}
+async function vCu(){const PR={admin:'Administrador/a',apoyo:'Apoyo (evaluador)',pro:'Profesional'};let ia='';const quien=`<p><small>Sesión iniciada como <b>${esc(S.user.nombre)}</b> · ${PR[S.user.rol]||S.user.rol}${S.user.principal?' · <b>principal</b>':''}</small></p>`;
+if(S.user.rol!='pro'){let s={ok:false},err='';try{s=await api('iaEstado')}catch(e){err=e.message}
+ia=`<div class="card" style="max-width:520px"><h2>Clave de IA (Groq)</h2><p><small>Aquí se pega la clave que empieza con <b>gsk_</b>.</small></p><p>Estado: <b>${err?'no se pudo consultar ('+esc(err)+')':s.ok?'configurada':'sin configurar'}</b></p>${(S.user.principal||(S.user.rol=='admin'&&!s.ok))?'<input id="gk" placeholder="gsk_..." autocomplete="off"><button class="b g" onclick="gkSave()">Actualizar clave</button>':'<p class="no">Solo la administradora principal (usuario ecastillo) puede cambiar esta clave. Usted ingresó con otro perfil.</p>'}</div>`}
+$('m').innerHTML=quien+ia+`<div class="card" style="max-width:420px"><h2>Cambiar mi contraseña de ingreso</h2><p><small>Solo para su clave de acceso a esta plataforma. <b>No pegue aquí la clave de la IA.</b></small></p>${passForm()}</div>`}
 const gkSave=()=>{if(confirm('¿Seguro que desea reemplazar la clave de IA?'))T(async()=>{await api('iaClave',{clave:$('gk').value});alert('Clave actualizada');vCu()})};
 
 /* ===== ADMIN: USUARIOS ===== */
