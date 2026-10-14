@@ -61,7 +61,7 @@ const offs=u=>{const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/Santia
 const chMs=s=>{const[a,t]=s.split('T'),[y,m,d]=a.split('-').map(Number),[H,M]=t.split(':').map(Number),L=Date.UTC(y,m-1,d,H,M);let u=L;for(let i=0;i<3;i++)u=L-offs(u);return u};
 const fc=v=>/^\d{10,}$/.test(String(v))?fd(v):String(v).replace('T',' ');
 const T=async f=>{try{return await f()}catch(e){alert(e.message)}};
-function shell(tabs,body){$('app').innerHTML=`<header><img src="logo.png"><b>Plataforma de Evaluaciones</b> <small style="color:#8a96a6">v14-oct-c</small><span class="sp"></span><nav>${tabs.map(t=>`<button class="${S.tab==t[0]?'on':''}" onclick="go('${t[0]}')">${t[1]}</button>`).join('')}</nav><span>${esc(S.user.nombre)}</span><button class="b g s" onclick="logout()">Salir</button></header><main id="m">${body||''}</main>`}
+function shell(tabs,body){$('app').innerHTML=`<header><img src="logo.png"><b>Plataforma de Evaluaciones</b> <small style="color:#8a96a6">v14-oct-d</small><span class="sp"></span><nav>${tabs.map(t=>`<button class="${S.tab==t[0]?'on':''}" onclick="go('${t[0]}')">${t[1]}</button>`).join('')}</nav><span>${esc(S.user.nombre)}</span><button class="b g s" onclick="logout()">Salir</button></header><main id="m">${body||''}</main>`}
 function logout(){sessionStorage.clear();S.token=null;boot()}
 async function boot(){
   if(S.token){try{S.user=await api('yo');return S.user.cambiar?forzar():go(S.user.rol==='pro'?'mis':'res')}catch(e){S.token=null}}
@@ -116,7 +116,7 @@ function syncH(){ED.habilidades=$('eh').value.split(',').map(x=>x.trim()).filter
 function head(){ED.titulo=$('et').value;ED.objetivos=$('eo').value;ED.duracion=$('ed2').value;ED.habilidades=$('eh').value.split(',').map(x=>x.trim()).filter(Boolean)}
 function qAd(){head();ED.preguntas.push({seccion:'',tipo:'VF',enunciado:'',opciones:[],correcta:'V',habilidad:ED.habilidades[0]||'',puntaje:1,justificar:true});drawEd()}
 function qDe(i){head();ED.preguntas.splice(i,1);drawEd()}
-const evSave=()=>T(async()=>{head();await api('evalGuardar',{ev:ED});alert('Guardado');vEv()});
+const evSave=()=>T(async()=>{head();let c=false;for(;;){try{await api('evalGuardar',{ev:ED,confirmaBorrar:c});break}catch(e){if(/^CONFIRMAR:/.test(e.message)&&!c){const n=e.message.split(':')[1];if(!confirm('Esta evaluación ya fue rendida. Al quitar '+n+' pregunta(s) se eliminarán también sus respuestas y se recalcularán los puntajes y notas de quienes la rindieron. ¿Continuar?'))return;c=true}else throw e}}alert('Guardado');vEv()});
 
 /* ===== ADMIN: RESULTADOS ===== */
 async function vRes(){const ev=await api('evals');$('m').innerHTML=`<div class="card"><h2>Resultados y ranking</h2>${ADM()?'<button class="b g s" style="float:right" onclick="regr()">Recalcular notas con la clave actual</button>':''}Evaluación<select id="re" onchange="loadRes()">${ev.map(e=>`<option value="${e.id}">${esc(e.titulo)}</option>`).join('')}</select><div id="rl"></div></div><div id="rd"></div>`;if(ev.length)loadRes()}
