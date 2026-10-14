@@ -45,3 +45,13 @@ Ocurre cuando el script no está vinculado a una Hoja de cálculo. El nuevo `Cod
 - La pestaña y el título de "Horarios" pasaron a **Habilitar instrumentos**.
 - Velocidad: lectura en caché, guardado de respuestas en bloque y bloqueo solo en acciones de administración. Aparece "Cargando…" mientras se procesa. Apps Script de por sí tarda 1–3 s por acción.
 - Para actualizar: pegar `Codigo.gs` → Nueva versión de la implementación → subir `index.html` a GitHub (y refrescar con Ctrl+F5).
+
+## 8. Novedades (14-oct): rendición, varios usuarios, IA y guardado
+- **Cómo actualizar (siempre en este orden):** 1) pegar `Codigo.gs` completo en Apps Script y guardar; 2) ejecutar la función **`autorizar`** (acepte los permisos; solo la primera vez que se actualiza); 3) Implementar → Administrar implementaciones → editar → **Nueva versión**; 4) subir `index.html` a GitHub y refrescar con **Ctrl+F5**. Junto al título de la página aparece la versión (ej. `v14-oct-c`): si no la ve, el navegador o GitHub Pages aún muestran el archivo antiguo (puede tardar 1–2 min).
+- **Rendición:** al pulsar Comenzar aparece una pantalla previa; el botón "Comenzar en pantalla completa" oculta las pestañas. Si la persona sale, un clic la vuelve a poner. Las preguntas se numeran como en el instrumento, con barra de avance por sección.
+- **Varios usuarios a la vez y no perder respuestas:** guardado automático a los pocos segundos de cada respuesta (más respaldo en el equipo) y reintentos automáticos si falla la conexión. Si cierra la página, al volver a ingresar continúa donde quedó (el tiempo sigue corriendo).
+- **Justificar falsas:** al marcar Falso aparece el recuadro "Justifique por qué es falso". En el editor, el botón "Pedir justificación en todas las V/F" la activa en todo el instrumento.
+- **Perfiles de apoyo:** solo la administradora principal los crea (Usuarios → Perfil "Perfil de apoyo (evaluador)"). Pueden revisar resultados y usar la IA; no pueden crear ni eliminar.
+- **IA (Groq):** el botón "IA: corregir todo" revisa V/F, alternativas y desarrollo, de a 5 preguntas, y prueba un segundo modelo si el primero falla. Todo se revisa antes de pulsar "Guardar revisión".
+- **Si la IA dice "no configurada":** en Apps Script, función `configurarIA`, reemplace `PEGAR_AQUI_CLAVE_GROQ` por la clave, ejecútela, **vuelva a poner el texto original y guarde** (la clave queda solo en Propiedades del script). Luego ejecute `autorizar` y cree una Nueva versión.
+- **Si los cambios de una evaluación "no quedan":** el servidor ahora lee siempre los datos frescos al abrir Evaluaciones y fuerza el guardado antes de liberar el bloqueo. Compruebe además que la versión de la página (junto al título) sea la última.

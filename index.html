@@ -53,14 +53,15 @@ const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c
 let S={token:sessionStorage.getItem('tk'),user:null,tab:''},EX=null;
 const fd=t=>t?new Date(Number(t)).toLocaleString('es-CL',{timeZone:'America/Santiago'}):'-',dur=s=>Math.floor(s/60)+'m '+Math.round(s%60)+'s';
 let LD=0;const ld=n=>{LD+=n;const e=$('ld');if(e)e.style.display=LD>0?'block':'none'};
-const RETRY=['borrador','finalizar','yo','misEvals','informe','login'];
-async function api(action,d={}){ld(1);try{const n=RETRY.includes(action)?4:1;let last;for(let t=0;t<n;t++){try{const r=await fetch(API_URL,{method:'POST',body:JSON.stringify({action,token:S.token,...d})});const j=await r.json();if(!j.ok)throw Object.assign(new Error(j.error),{srv:1});return j.data}catch(e){last=e;if(e.srv)break;await new Promise(z=>setTimeout(z,800*(t+1)+Math.random()*700))}}
-  throw (last&&!last.srv)?new Error('Sin conexión con el servidor. Reintente en unos segundos.'):last}finally{ld(-1)}}
+const RETRY=['borrador','finalizar','yo','misEvals','informe','login','iaEstado','iaClave'];
+async function api(action,d={}){ld(1);try{const n=RETRY.includes(action)?4:2;let last,det='';for(let t=0;t<n;t++){try{const r=await fetch(API_URL,{method:'POST',body:JSON.stringify({action,token:S.token,...d})});const tx=await r.text();let j;try{j=JSON.parse(tx)}catch(x){det='el servidor respondió algo inesperado (HTTP '+r.status+'): '+tx.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,160);throw new Error(det)}
+    if(!j.ok)throw Object.assign(new Error(j.error),{srv:1});return j.data}catch(e){last=e;if(e.srv)break;if(!det)det=e.message;await new Promise(z=>setTimeout(z,800*(t+1)+Math.random()*700))}}
+  throw (last&&!last.srv)?new Error('No se pudo comunicar con el servidor ('+det+'). Reintente en unos segundos.'):last}finally{ld(-1)}}
 const offs=u=>{const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/Santiago',hourCycle:'h23',year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'numeric',second:'numeric'}).formatToParts(new Date(u)).reduce((o,x)=>(o[x.type]=x.value,o),{});return Date.UTC(p.year,p.month-1,p.day,p.hour,p.minute,p.second)-Math.floor(u/1000)*1000};
 const chMs=s=>{const[a,t]=s.split('T'),[y,m,d]=a.split('-').map(Number),[H,M]=t.split(':').map(Number),L=Date.UTC(y,m-1,d,H,M);let u=L;for(let i=0;i<3;i++)u=L-offs(u);return u};
 const fc=v=>/^\d{10,}$/.test(String(v))?fd(v):String(v).replace('T',' ');
 const T=async f=>{try{return await f()}catch(e){alert(e.message)}};
-function shell(tabs,body){$('app').innerHTML=`<header><img src="logo.png"><b>Plataforma de Evaluaciones</b><span class="sp"></span><nav>${tabs.map(t=>`<button class="${S.tab==t[0]?'on':''}" onclick="go('${t[0]}')">${t[1]}</button>`).join('')}</nav><span>${esc(S.user.nombre)}</span><button class="b g s" onclick="logout()">Salir</button></header><main id="m">${body||''}</main>`}
+function shell(tabs,body){$('app').innerHTML=`<header><img src="logo.png"><b>Plataforma de Evaluaciones</b> <small style="color:#8a96a6">v14-oct-c</small><span class="sp"></span><nav>${tabs.map(t=>`<button class="${S.tab==t[0]?'on':''}" onclick="go('${t[0]}')">${t[1]}</button>`).join('')}</nav><span>${esc(S.user.nombre)}</span><button class="b g s" onclick="logout()">Salir</button></header><main id="m">${body||''}</main>`}
 function logout(){sessionStorage.clear();S.token=null;boot()}
 async function boot(){
   if(S.token){try{S.user=await api('yo');return S.user.cambiar?forzar():go(S.user.rol==='pro'?'mis':'res')}catch(e){S.token=null}}
